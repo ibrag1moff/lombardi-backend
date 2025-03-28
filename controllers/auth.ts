@@ -4,7 +4,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
 import { prisma } from "../config/prisma";
-import { LoginBody, RegisterBody } from "types/requests";
+import { LoginBody, RegisterBody } from "../types/body";
 import { generateTokenAndSetCookies } from "../utils/generateTokenAndSetCookies";
 import { sendWelcomeEmail } from "../emails/sendWelcomeEmail";
 import { sendForgotPasswordEmail } from "../emails/sendForgotPasswordEmail";

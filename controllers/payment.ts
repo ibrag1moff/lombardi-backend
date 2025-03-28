@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { stripe } from "../config/stripe";
 import { prisma } from "../config/prisma";
 
-import { CreateCheckoutSessionBody } from "types/requests";
+import { CreateCheckoutSessionBody } from "../types/body";
 
 export interface AuthenticatedRequest extends Request {
   user?: {

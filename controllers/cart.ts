@@ -1,16 +1,18 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
-import { AuthenticatedRequest } from "./payment";
 
-export const getCart: (
-  req: AuthenticatedRequest,
+export const getCart: (req: Request, res: Response) => void = async (
+  req: Request,
   res: Response
-) => void = async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user?.userId;
-  console.log(userId);
+) => {
+  const userId = (req as any).user?.userId;
 
   try {
-    const cart = await prisma.cart.findMany();
+    const cart = await prisma.cart.findMany({
+      where: {
+        userId: userId,
+      },
+    });
 
     if (!cart.length) return res.status(404).json({ error: "Cart is empty" });
 

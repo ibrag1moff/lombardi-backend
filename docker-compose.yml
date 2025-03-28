@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    ports:
+      - "5001:5001"
+    restart: always
+    environment:
+      - PORT=${PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - EMAIL=${EMAIL}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - STRIPE_SECRET=${STRIPE_SECRET}
+      - CLIENT_URL=${CLIENT_URL}
+    depends_on:
+      - db
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    restart: always
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -3,7 +3,6 @@ import {
   sendNewsletterToUser,
   subscribeToNewsletter,
 } from "../controllers/newsletter";
-
 import { verifyToken } from "../middlewares/auth";
 
 const router = express.Router();
