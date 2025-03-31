@@ -1,6 +1,5 @@
 {
   "name": "lombardi-backend",
-  "packageManager": "yarn@4.5.1",
   "scripts": {
     "build": "tsc --build || true",
     "start": "node ./dist/index.js",
@@ -20,6 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
+    "redis": "^4.7.0",
     "stripe": "^17.7.0"
   },
   "devDependencies": {
