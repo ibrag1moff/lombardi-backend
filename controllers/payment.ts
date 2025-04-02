@@ -5,17 +5,11 @@ import { prisma } from "../config/prisma";
 
 import { CreateCheckoutSessionBody } from "../types/body";
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-  };
-}
-
 export const createCheckoutSession: (
   req: Request,
   res: Response
-) => void = async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user?.userId;
+) => void = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.userId;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -36,7 +30,7 @@ export const createCheckoutSession: (
 
     await prisma.user.update({
       where: { id: userId },
-      data: { stripeCustomerId: stripeCustomerId },
+      data: { stripeCustomerId },
     });
   }
 

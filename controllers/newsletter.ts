@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
 import { sendNewsletter } from "../emails/sendNewsletter";
+import { SendNewsletterType } from "types/requests/newsletter";
 
 export const subscribeToNewsletter: (
   req: Request,
@@ -35,7 +36,7 @@ export const sendNewsletterToUser: (
   req: Request,
   res: Response
 ) => void = async (req: Request, res: Response) => {
-  const { subject, content } = req.body as { subject: string; content: string };
+  const { subject, content } = req.body as SendNewsletterType;
 
   if (!subject || !content)
     return res.status(400).json({ error: "Subject and content required" });

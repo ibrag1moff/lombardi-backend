@@ -9,7 +9,7 @@ import { generateTokenAndSetCookies } from "../utils/generateTokenAndSetCookies"
 import { sendWelcomeEmail } from "../emails/sendWelcomeEmail";
 import { sendForgotPasswordEmail } from "../emails/sendForgotPasswordEmail";
 import { sendSuccessResetPasswordEmail } from "../emails/sendSuccessResetPasswordEmail";
-import redis from "../config/redis";
+import { ResetPasswordBody, VerifyOtpBody } from "types/requests/auth";
 
 interface JwtPayload {
   userId: string;
@@ -28,24 +28,10 @@ export const register: (req: Request, res: Response) => void = async (
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const rateLimitKey = `registration_rate:${email}`;
-    const registrationRateLimited = await redis.get(rateLimitKey);
-
-    if (registrationRateLimited) {
-      return res.status(429).json({
-        error: "Too many registration attempts. Please try again later.",
-      });
-    }
-
     if (password.length < 4) {
       return res
         .status(400)
         .json({ error: "Password must be at least 4 characters long" });
-    }
-
-    const cachedUser = await redis.get(`user:${email}`);
-    if (cachedUser) {
-      return res.status(400).json({ error: "User already exists" });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -64,13 +50,9 @@ export const register: (req: Request, res: Response) => void = async (
       },
     });
 
-    await redis.set(`user:${email}`, JSON.stringify(user), { EX: 3600 });
-
     const token = generateTokenAndSetCookies(res, user.id);
 
     await sendWelcomeEmail(user.email, user.name!);
-
-    await redis.set(rateLimitKey, "1", { EX: 60 });
 
     res.status(201).json({ message: "User successfully registered", token });
   } catch (e: any) {
@@ -89,38 +71,17 @@ export const login: (req: Request, res: Response) => void = async (
     if (!email || !password)
       return res.status(400).json({ error: "Missing required fields" });
 
-    let user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    const userCacheKey = `user:${user.id}`;
-    const failedAttemptsKey = `failed_login:${user.id}`;
-
-    const attempts = parseInt((await redis.get(failedAttemptsKey)) || "0", 10);
-    if (attempts >= 3)
-      return res
-        .status(429)
-        .json({ error: "Too many failed attempts. Please try again later." });
-
-    const cachedUser = await redis.get(userCacheKey);
-
-    if (cachedUser) {
-      user = JSON.parse(cachedUser);
-    } else {
-      await redis.set(userCacheKey, JSON.stringify(user), { EX: 3600 });
-    }
-
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      await redis.incr(failedAttemptsKey);
-      await redis.expire(failedAttemptsKey, 300);
       return res.status(400).json({ error: "Invalid credentials" });
     }
-
-    await redis.del(failedAttemptsKey);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -128,8 +89,6 @@ export const login: (req: Request, res: Response) => void = async (
     });
 
     const token = generateTokenAndSetCookies(res, user.id);
-
-    await redis.set(`session:${user.id}`, token, { EX: 86400 });
 
     res.status(200).json({ message: "User successfully logged in", token });
   } catch (e: any) {
@@ -145,30 +104,19 @@ export const forgotPassword: (req: Request, res: Response) => void = async (
   const { email } = req.body as { email: string };
 
   try {
-    const rateLimitKey = `otp_rate:${email}`;
-    const rateLimited = await redis.get(rateLimitKey);
-
-    if (rateLimited)
-      return res
-        .status(429)
-        .json({ error: "Too many requests. Please try again in 1 minute." });
-
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const otpCode = crypto.randomInt(100000, 999999).toString();
-    const otpCacheKey = `otp:${email}`;
 
-    const multi = redis.multi();
-
-    multi.set(otpCacheKey, otpCode);
-    multi.expire(otpCacheKey, 600);
-
-    multi.set(rateLimitKey, "1");
-    multi.expire(rateLimitKey, 60);
-
-    await multi.exec();
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetToken: otpCode,
+        resetTokenExpiresAt: new Date(Date.now() + 600000),
+      },
+    });
 
     await sendForgotPasswordEmail(user.name!, email, otpCode);
 
@@ -184,7 +132,7 @@ export const verifyOTP: (
   res: Response,
   next: NextFunction
 ) => void = async (req: Request, res: Response, next: NextFunction) => {
-  const { userId, otp } = req.body as { userId: string; otp: string };
+  const { userId, otp } = req.body as VerifyOtpBody;
 
   if (!userId || !otp) {
     return res.status(400).json({ error: "User ID and OTP are required." });
@@ -226,11 +174,7 @@ export const resetPassword: (req: Request, res: Response) => void = async (
   req: Request,
   res: Response
 ) => {
-  const { userId, password } = req.body as {
-    userId: string;
-    password: string;
-    otp: string;
-  };
+  const { userId, password } = req.body as ResetPasswordBody;
 
   if (!userId || !password)
     return res.status(400).json({ error: "User ID and Password are required" });

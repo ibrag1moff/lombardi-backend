@@ -38,7 +38,7 @@ model User {
 
 model Cart {
   id String @id @default(cuid())
-  userId String
+  userId String @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -71,7 +71,7 @@ model Product {
 }
 
 model Subscriber {
-  id String @id @default(uuid())
+  id String @id @default(cuid())
   email String @unique
   createdAt DateTime @default(now())
 }
