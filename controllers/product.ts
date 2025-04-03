@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
-import { AddProductBody, UpdateProductBody } from "../types/body";
+import { AddProductBody, UpdateProductBody } from "../types/requests/product";
 
 export const getProducts: (req: Request, res: Response) => void = async (
   req: Request,

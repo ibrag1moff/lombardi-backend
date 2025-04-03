@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { stripe } from "../config/stripe";
 import { prisma } from "../config/prisma";
 
-import { CreateCheckoutSessionBody } from "../types/body";
+import { CreateCheckoutSessionBody } from "../types/requests/payment";
 
 export const createCheckoutSession: (
   req: Request,
